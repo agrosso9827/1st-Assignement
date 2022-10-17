@@ -1,0 +1,173 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+
+The following chunk must be run first before loading your dataset to enter the necessary libraries to execute the present code
+
+```{r}
+#Enter the names of packages
+if(require("tidyverse")==FALSE){
+  install.packages("tidyverse")
+}
+library("tidyverse")
+library(readr)
+flights <- read_csv("C:/Users/university25/Downloads/flights.csv")
+```
+
+
+Q.1
+Find the number of flights operated for each airline per month and display the results in descending order.
+```{r}
+byMonth<-flights %>%
+  group_by(MONTH)%>%
+  count(AIRLINE)%>%
+  arrange(MONTH, desc(n))
+
+print(byMonth)
+
+```
+
+
+Q.2
+Find and display in which month and which day of this month throughout the registration period there were the most type D cancellations for the departure airport with the code "LAX"
+```{r}
+canc <-flights %>%
+  filter(CANCELLATION_REASON == "D" & ORIGIN_AIRPORT == "LAX") 
+
+print(canc)
+  ## No intersection detected
+  
+```
+
+
+Q.3 Find and display the three-digit codes of the first 3 airports (destination airports) that had the most traffic during the hours (12.00-14.00) for the months of January to March.
+```{r}
+filterd<-flights %>%
+  filter(ARRIVAL_TIME >= 1200 & ARRIVAL_TIME <= 1400) %>%
+  filter(MONTH ==1 | MONTH == 2 | MONTH == 3) %>%
+  count(DESTINATION_AIRPORT)%>%
+  arrange(desc(n))%>%
+  slice(1:3)
+  
+print(filterd)
+```
+
+Q.4 Find the flight with the second longest distance. Then display the average monthly delay in minutes (ARR_DELAY> 0) for the period January-April.
+```{r}
+second <-flights%>%
+  arrange(desc(DISTANCE))%>%
+  distinct(AIRLINE,DISTANCE)
+
+  flights%>%
+  filter(DISTANCE == 4962)%>%
+  filter(MONTH ==1 | MONTH == 2 | MONTH == 3 | MONTH == 4)%>%
+  arrange(desc(DISTANCE))%>%
+  summarise(meanDelay=mean(AIRLINE_DELAY, na.rm=T))
+  
+```
+
+Q.5 
+Find the flight (flight code) with the most scheduled itineraries for the recording interval. Then for the specific flight to represent in a diagram all the itineraries as follows: horizontal axis the day of the month, vertical axis the real departure time and in a grid panel the months.
+```{r}
+flights %>%
+  count(FLIGHT_NUMBER)%>%
+  arrange(desc(n))
+
+most <- flights %>%
+  filter(FLIGHT_NUMBER == 469)
+
+ggplot(most) +
+  aes(x = DAY, y = DEPARTURE_TIME) +
+  geom_point(shape = "circle", size = 1.5, colour = "#112446") +
+  theme_minimal() +
+  facet_wrap(vars(MONTH))
+```
+
+
+
+
+
+Q.6 
+Calculate and display which airport (departure location) had the most flights with delays (departures) of more than half an hour due to air carriers in the second ten days of February.
+```{r}
+  more30<-flights %>%
+    filter(DEPARTURE_DELAY>29) %>%
+    filter(MONTH == 2) %>%
+    filter(DAY>=10 & DAY <= 20)%>%
+    select(ORIGIN_AIRPORT, DEPARTURE_DELAY)%>%
+    group_by(ORIGIN_AIRPORT)%>%
+    count(DEPARTURE_DELAY)%>%
+    summarise(numDelay = sum(n))%>%
+    arrange(desc(numDelay))
+
+print(more30)
+```
+
+Q.7
+What was the route (flight) with the most cancellations type D. Display the details of the columns MKT_UNIQUE_CARRIER as DEST_STATE_NM for this route.
+```{r}
+flights %>%
+  filter(CANCELLATION_REASON == "D")%>%
+  group_by(FLIGHT_NUMBER)%>%
+  count(CANCELLED)
+
+```
+
+Q.8 
+Calculate and display how many cancellations of type A flights occurred on the 13th day of each month of the recording period. Visualize these flights as follows: horizontal axis departure airport, vertical axis arrival airport, coloring points based on airline ~ month
+```{r}
+terteen <- flights %>%
+  filter(DAY == 13)%>%
+  filter(CANCELLATION_REASON == "A")
+
+ggplot(terteen) +
+  aes(
+    x = ORIGIN_AIRPORT,
+    y = DESTINATION_AIRPORT,
+    fill = AIRLINE
+  ) +
+  geom_tile(size = 1.2) +
+  scale_fill_hue(direction = 1) +
+  theme_minimal() +
+  facet_wrap(vars(MONTH))
+```
+
+Q.9
+Find for each airport the total number of flights canceled during the registration period. If we consider that from each flight the airport earns from landing fees 1500 euros, find the total revenue lost for each airport per airline. Also visualize this loss of revenue as follows: horizontal axis airport, vertical axis loss of revenue and each point being colored based on the column of airline names.
+```{r}
+canccc <- flights %>%
+   filter(CANCELLED== 1)%>%
+   group_by(ORIGIN_AIRPORT, AIRLINE)%>%
+   count(CANCELLED)%>%
+   summarise(totLost = n*1500)
+
+ggplot(canccc) +
+  aes(x = ORIGIN_AIRPORT, y = totLost, colour = AIRLINE) +
+  geom_point(shape = "circle", size = 1.5) +
+  scale_color_manual(
+    values = c(AA = "#7FC97F",
+    AS = "#A0BAAC",
+    B6 = "#C2AFCE",
+    DL = "#E4B9A3",
+    EV = "#FDC988",
+    F9 = "#FEEB93",
+    HA = "#D1DD9E",
+    MQ = "#658DAA",
+    NK = "#704BA0",
+    OO = "#D31286",
+    UA = "#DD2456",
+    US = "#C2541E",
+    VX = "#95603B",
+    WN = "#666666")
+  ) +
+  theme_minimal()
+
+
+```
+
