@@ -17,7 +17,8 @@ if(require("tidyverse")==FALSE){
 }
 library("tidyverse")
 library(readr)
-flights <- read_csv("C:/Users/university25/Downloads/flights.csv")
+flight <- read_csv("flights.csv")
+flights<- lazy_dt(flight)
 ```
 
 
@@ -25,11 +26,10 @@ Q.1
 Find the number of flights operated for each airline per month and display the results in descending order.
 ```{r}
 byMonth<-flights %>%
-  group_by(MONTH)%>%
-  count(AIRLINE)%>%
+  count(AIRLINE, MONTH)%>%
   arrange(MONTH, desc(n))
 
-print(byMonth)
+print(as_tibble(byMonth))
 
 ```
 
@@ -38,9 +38,12 @@ Q.2
 Find and display in which month and which day of this month throughout the registration period there were the most type D cancellations for the departure airport with the code "LAX"
 ```{r}
 canc <-flights %>%
-  filter(CANCELLATION_REASON == "D" & ORIGIN_AIRPORT == "LAX") 
+  filter(CANCELLATION_REASON == "D" | ORIGIN_AIRPORT == "LAX")%>%
+  count(MONTH, DAY)%>%
+  arrange(desc(n))
+  
 
-print(canc)
+print(as_tibble(canc))
   ## No intersection detected
   
 ```
@@ -55,7 +58,7 @@ filterd<-flights %>%
   arrange(desc(n))%>%
   slice(1:3)
   
-print(filterd)
+print(as_tibble(filterd))
 ```
 
 Q.4 Find the flight with the second longest distance. Then display the average monthly delay in minutes (ARR_DELAY> 0) for the period January-April.
@@ -64,9 +67,11 @@ second <-flights%>%
   arrange(desc(DISTANCE))%>%
   distinct(AIRLINE,DISTANCE)
 
+print(as_tibble(second))
+
   flights%>%
   filter(DISTANCE == 4962)%>%
-  filter(MONTH ==1 | MONTH == 2 | MONTH == 3 | MONTH == 4)%>%
+  filter(MONTH >=1 | MONTH <= 4)%>%
   arrange(desc(DISTANCE))%>%
   summarise(meanDelay=mean(AIRLINE_DELAY, na.rm=T))
   
@@ -80,7 +85,8 @@ flights %>%
   arrange(desc(n))
 
 most <- flights %>%
-  filter(FLIGHT_NUMBER == 469)
+  filter(FLIGHT_NUMBER == 469)%>%
+  as_tibble()
 
 ggplot(most) +
   aes(x = DAY, y = DEPARTURE_TIME) +
@@ -90,23 +96,17 @@ ggplot(most) +
 ```
 
 
-
-
-
 Q.6 
 Calculate and display which airport (departure location) had the most flights with delays (departures) of more than half an hour due to air carriers in the second ten days of February.
 ```{r}
   more30<-flights %>%
-    filter(DEPARTURE_DELAY>29) %>%
-    filter(MONTH == 2) %>%
-    filter(DAY>=10 & DAY <= 20)%>%
+    filter(DEPARTURE_DELAY>29 & MONTH == 2 & DAY>=10 & DAY <= 20) %>%
     select(ORIGIN_AIRPORT, DEPARTURE_DELAY)%>%
-    group_by(ORIGIN_AIRPORT)%>%
-    count(DEPARTURE_DELAY)%>%
+    count( ORIGIN_AIRPORT, DEPARTURE_DELAY)%>%
     summarise(numDelay = sum(n))%>%
     arrange(desc(numDelay))
 
-print(more30)
+print(as_tibble(more30))
 ```
 
 Q.7
@@ -114,8 +114,8 @@ What was the route (flight) with the most cancellations type D. Display the deta
 ```{r}
 flights %>%
   filter(CANCELLATION_REASON == "D")%>%
-  group_by(FLIGHT_NUMBER)%>%
-  count(CANCELLED)
+  count(FLIGHT_NUMBER)%>%
+  as_tibble
 
 ```
 
@@ -123,8 +123,7 @@ Q.8
 Calculate and display how many cancellations of type A flights occurred on the 13th day of each month of the recording period. Visualize these flights as follows: horizontal axis departure airport, vertical axis arrival airport, coloring points based on airline ~ month
 ```{r}
 terteen <- flights %>%
-  filter(DAY == 13)%>%
-  filter(CANCELLATION_REASON == "A")
+  filter(DAY == 13 & CANCELLATION_REASON == "A")
 
 ggplot(terteen) +
   aes(
